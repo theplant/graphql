@@ -36,6 +36,14 @@ func (m mapR) unwrap() interface{} {
 	return m
 }
 
+type arrayR struct {
+	arr []Result
+}
+
+func (a arrayR) unwrap() interface{} {
+	return a.arr
+}
+
 // Fixme mapped by order, not by name :(
 func values(args map[string]Result) (v []reflect.Value) {
 	v = []reflect.Value{}
@@ -45,11 +53,52 @@ func values(args map[string]Result) (v []reflect.Value) {
 	return
 }
 
-func Transform(query Query, context QueryContext) (Result, error) {
+func TransformArray(query Query, context QueryContext) (result Result, err error) {
+	//	fmt.Printf("%v %v\n", query, context)
 	v := reflect.ValueOf(context)
-	fn := v.MethodByName(query.Name)
+	r := []Result{}
+	for i := 0; i < v.Len(); i++ {
+		item := v.Index(i)
+		rx, e := TransformValue(query, item)
+		if e != nil {
+			return nil, e
+		}
+		r = append(r, rx)
+	}
+	return mapR{query.Name: arrayR{arr: r}}, nil
+}
+
+func TransformScalar(value reflect.Value) (Result, error) {
+	val := value.Interface()
+	switch val.(type) {
+	case string:
+		return String(val.(string)), nil
+	case int:
+		return Int(val.(int)), nil
+	case bool:
+		return boolR(val.(bool)), nil
+	default:
+		return nil, errors.New(fmt.Sprintf("Unknown base type: %s", value))
+	}
+}
+
+func TransformValue(query Query, value reflect.Value) (Result, error) {
+	data := mapR{}
+	for _, field := range query.Fields {
+		val, err := Transform(field, value.Interface())
+		if err != nil {
+			return nil, err
+		}
+		data[field.Name] = val
+	}
+	return data, nil
+}
+
+func Transform(query Query, context QueryContext) (Result, error) {
+	fn := reflect.ValueOf(context).MethodByName(query.Name)
+
 	if !fn.IsValid() {
-		return nil, errors.New("Unknown query")
+		return nil, errors.New(fmt.Sprintf("Unknown query '%s' on '%v'", query.Name, context))
 	}
 
 	values := values(query.Arguments)
@@ -63,27 +112,14 @@ func Transform(query Query, context QueryContext) (Result, error) {
 	r := fn.Call(values)[0]
 
 	if len(query.Fields) > 0 {
-		data := mapR{}
-		for _, field := range query.Fields {
-			val, err := Transform(field, r.Interface())
-			if err != nil {
-				return nil, err
-			}
-			data[field.Name] = val
-		}
-		return data, nil
-	} else {
-		val := r.Interface()
-		switch val.(type) {
-		case string:
-			return String(val.(string)), nil
-		case int:
-			return Int(val.(int)), nil
-		case bool:
-			return boolR(val.(bool)), nil
+		switch r.Kind() {
+		case reflect.Slice:
+			return TransformArray(query, r.Interface())
 		default:
-			return nil, errors.New(fmt.Sprintf("Unknown base type: %s (%s:%s) for %s", val, r.Type(), r, query.Name))
+			return TransformValue(query, r)
 		}
+	} else {
+		return TransformScalar(r)
 	}
 }
 

@@ -117,7 +117,14 @@ func main() {
 	fmt.Println(c)
 	fmt.Println(err)
 
-	c, err = graphql.Transform(graphql.Query{Name: "Pictures"}, Album{})
+	q = graphql.Query{
+		Name: "Pictures",
+		Fields: graphql.Fields{
+			graphql.Query{Name: "Uri"},
+			graphql.Query{Name: "Width"},
+		},
+	}
+	c, err = graphql.Transform(q, Album{})
 	fmt.Println(c)
 	fmt.Println(err)
 }
