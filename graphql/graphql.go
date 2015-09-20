@@ -24,23 +24,17 @@ func (s String) unwrap() interface{} {
 	return string(s)
 }
 
-type boolR bool
+type resultMap map[string]Result
 
-func (i boolR) unwrap() interface{} {
-	return i
-}
-
-type mapR map[string]Result
-
-func (m mapR) unwrap() interface{} {
+func (m resultMap) unwrap() interface{} {
 	return m
 }
 
-type arrayR struct {
+type resultArray struct {
 	arr []Result
 }
 
-func (a arrayR) unwrap() interface{} {
+func (a resultArray) unwrap() interface{} {
 	return a.arr
 }
 
@@ -53,37 +47,34 @@ func values(args map[string]Result) (v []reflect.Value) {
 	return
 }
 
-func TransformArray(query Query, context QueryContext) (result Result, err error) {
-	//	fmt.Printf("%v %v\n", query, context)
+func transformArray(query Query, context QueryContext) (result Result, err error) {
 	v := reflect.ValueOf(context)
 	r := []Result{}
 	for i := 0; i < v.Len(); i++ {
 		item := v.Index(i)
-		rx, e := TransformValue(query, item)
+		rx, e := transformValue(query, item)
 		if e != nil {
 			return nil, e
 		}
 		r = append(r, rx)
 	}
-	return mapR{query.Name: arrayR{arr: r}}, nil
+	return resultMap{query.Name: resultArray{arr: r}}, nil
 }
 
-func TransformScalar(value reflect.Value) (Result, error) {
+func transformScalar(value reflect.Value) (Result, error) {
 	val := value.Interface()
 	switch val.(type) {
 	case string:
 		return String(val.(string)), nil
 	case int:
 		return Int(val.(int)), nil
-	case bool:
-		return boolR(val.(bool)), nil
 	default:
 		return nil, errors.New(fmt.Sprintf("Unknown base type: %s", value))
 	}
 }
 
-func TransformValue(query Query, value reflect.Value) (Result, error) {
-	data := mapR{}
+func transformValue(query Query, value reflect.Value) (Result, error) {
+	data := resultMap{}
 	for _, field := range query.Fields {
 		val, err := Transform(field, value.Interface())
 		if err != nil {
@@ -114,12 +105,12 @@ func Transform(query Query, context QueryContext) (Result, error) {
 	if len(query.Fields) > 0 {
 		switch r.Kind() {
 		case reflect.Slice:
-			return TransformArray(query, r.Interface())
+			return transformArray(query, r.Interface())
 		default:
-			return TransformValue(query, r)
+			return transformValue(query, r)
 		}
 	} else {
-		return TransformScalar(r)
+		return transformScalar(r)
 	}
 }
 
