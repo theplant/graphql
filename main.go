@@ -85,6 +85,17 @@ func (Album) Pictures() []ProfilePicture {
 }
 
 func main() {
+	qr, err := graphql.Parse("{ Pictures { Width u: Width } Pictures { Width }  }")
+	fmt.Println(qr)
+	fmt.Println(err)
+	//	qr, err = graphql.Parse("{ User(id: 3500401) { Id Name pic: ProfilePicture(size:50) { Uri Width } } }")
+	fmt.Println(qr)
+	fmt.Println(err)
+	c, err := graphql.Transform(qr, Album{})
+	fmt.Println(c)
+	fmt.Println(err)
+	return
+
 	q := graphql.Query{
 		Name:      "User",
 		Arguments: graphql.Arguments{"id": graphql.String("3500401")},
@@ -113,7 +124,7 @@ func main() {
 	fmt.Println("res:", v)
 
 	k := Query{}
-	c, err := graphql.Transform(q, k)
+	c, err = graphql.Transform(q, k)
 	fmt.Println(c)
 	fmt.Println(err)
 
@@ -127,4 +138,5 @@ func main() {
 	c, err = graphql.Transform(q, Album{})
 	fmt.Println(c)
 	fmt.Println(err)
+
 }

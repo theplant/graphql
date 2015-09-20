@@ -69,7 +69,7 @@ func queryify(nodes []parsec.ParsecNode) parsec.ParsecNode {
 	}
 
 	if alias != nil {
-		//		query.Alias = alias.(string)
+		query.Alias = alias.(string)
 	}
 
 	if arguments != nil {

@@ -80,7 +80,11 @@ func transformValue(query Query, value reflect.Value) (Result, error) {
 		if err != nil {
 			return nil, err
 		}
-		data[field.Name] = val
+		name := field.Alias
+		if len(name) == 0 {
+			name = field.Name
+		}
+		data[name] = val
 	}
 	return data, nil
 }
@@ -119,6 +123,7 @@ type Fields []Query
 
 type Query struct {
 	Name      string
+	Alias     string
 	Arguments Arguments
 	Fields    []Query
 }
