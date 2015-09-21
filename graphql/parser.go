@@ -3,6 +3,7 @@ package graphql
 import (
 	"errors"
 	"fmt"
+	"strconv"
 
 	parsec "github.com/prataprc/goparsec"
 )
@@ -51,10 +52,23 @@ func field(query *parsec.Parser) parsec.Parser {
 	arguments := parsec.And(
 		extract(1),
 		parsec.Token(`\(`, ""),
-		parsec.Many(argify, parsec.And(nil, parsec.Ident(), parsec.Token(`:`, ""), parsec.Int())),
+		parsec.Many(argify, parsec.And(nil, parsec.Maybe(identFn, parsec.Ident()), parsec.Token(`:`, ""), argValue())),
 		parsec.Token(`\)`, ""))
 
 	return sequence(queryify, &alias, &field, &arguments, query)
+}
+
+func argValue() parsec.Parser {
+	// Value[Const] :
+	//   [~Const]Variable (not implemented)
+	//   IntValue
+	//   FloatValue
+	//   StringValue
+	//   BooleanValue (not implemented)
+	//   EnumValue (not implemented)
+	//   ListValueConst (not implemented)
+	//   ObjectValueConst (not implemented)
+	return parsec.OrdChoice(resultify, parsec.Int(), parsec.Float(), parsec.String())
 }
 
 func queryify(nodes []parsec.ParsecNode) parsec.ParsecNode {
@@ -115,10 +129,30 @@ func isEmpty(nodes []parsec.ParsecNode) bool {
 func argify(nodes []parsec.ParsecNode) parsec.ParsecNode {
 	m := Arguments{}
 	for _, node := range nodes {
+		dump("argify", nodes)
 		nn := node.([]parsec.ParsecNode)
-		m[nn[0].(*parsec.Terminal).Value] = String(nn[2].(*parsec.Terminal).Value)
+		key := nn[0].(string)
+		value := nn[2].(Result)
+
+		m[key] = value
 	}
 	return m
+}
+
+func resultify(nodes []parsec.ParsecNode) parsec.ParsecNode {
+	node := nodes[0]
+	switch node.(type) {
+	case string:
+		return String(node.(string))
+	case *parsec.Terminal:
+		t := node.(*parsec.Terminal)
+		switch t.Name {
+		case "INT":
+			val, _ := strconv.ParseInt(t.Value, 10, 16)
+			return Int(val)
+		}
+	}
+	return node
 }
 
 func sequence(cb parsec.Nodify, parsers ...*parsec.Parser) parsec.Parser {

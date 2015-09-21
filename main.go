@@ -88,10 +88,10 @@ func main() {
 	qr, err := graphql.Parse("{ Pictures { Width u: Width } Pictures { Width }  }")
 	fmt.Println(qr)
 	fmt.Println(err)
-	//	qr, err = graphql.Parse("{ User(id: 3500401) { Id Name pic: ProfilePicture(size:50) { Uri Width } } }")
+	qr, err = graphql.Parse("{ User(id: \"3500401\") { Id Name pic: ProfilePicture(size:50) { Uri Width } } }")
 	fmt.Println(qr)
 	fmt.Println(err)
-	c, err := graphql.Transform(qr, Album{})
+	c, err := graphql.Transform(qr, Query{})
 	fmt.Println(c)
 	fmt.Println(err)
 	return
