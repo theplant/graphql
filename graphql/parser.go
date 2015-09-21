@@ -129,7 +129,7 @@ func isEmpty(nodes []parsec.ParsecNode) bool {
 func argify(nodes []parsec.ParsecNode) parsec.ParsecNode {
 	m := Arguments{}
 	for _, node := range nodes {
-		dump("argify", nodes)
+		// dump("argify", nodes)
 		nn := node.([]parsec.ParsecNode)
 		key := nn[0].(string)
 		value := nn[2].(Result)
