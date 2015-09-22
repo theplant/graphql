@@ -10,6 +10,7 @@ type QueryContext interface{}
 
 type Result interface {
 	unwrap() interface{}
+	OfType(*Type) bool
 }
 
 type Int int
@@ -18,10 +19,18 @@ func (i Int) unwrap() interface{} {
 	return int(i)
 }
 
+func (i Int) OfType(type_ *Type) bool {
+	return type_ == int_
+}
+
 type String string
 
 func (s String) unwrap() interface{} {
 	return string(s)
+}
+
+func (s String) OfType(type_ *Type) bool {
+	return type_ == string_
 }
 
 type resultMap map[string]Result
@@ -30,12 +39,20 @@ func (m resultMap) unwrap() interface{} {
 	return m
 }
 
+func (m resultMap) OfType(type_ *Type) bool {
+	return false
+}
+
 type resultArray struct {
 	arr []Result
 }
 
 func (a resultArray) unwrap() interface{} {
 	return a.arr
+}
+
+func (a resultArray) OfType(type_ *Type) bool {
+	return false
 }
 
 // Fixme mapped by order, not by name :(
