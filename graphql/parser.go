@@ -21,7 +21,7 @@ import (
 //   }
 // }
 
-var y, fields parsec.Parser
+var y, selectionSet parsec.Parser
 
 func Parse(input string) (query Query, err error) {
 	s := parsec.NewScanner([]byte(input))
@@ -36,39 +36,44 @@ func Parse(input string) (query Query, err error) {
 }
 
 func init() {
-	fields = parsec.Many(nil, field(&y))
-	y = parsec.And(extract(1), parsec.Token(`{`, ""), fields, parsec.Token(`}`, ""))
+	// missing `fragment spread`, `inline fragment`
+	selection := parsec.OrdChoice(extract(0), field())
+	selectionSet = parsec.And(extract(1), parsec.Token(`{`, ""), parsec.Many(nil, selection), parsec.Token(`}`, ""))
+	y = selectionSet
 }
 
-func field(query *parsec.Parser) parsec.Parser {
+func field() parsec.Parser {
 	identFn := func(nodes []parsec.ParsecNode) parsec.ParsecNode {
 		return nodes[0].(*parsec.Terminal).Value
 	}
 
-	field := parsec.Maybe(identFn, parsec.Ident())
+	name := parsec.Maybe(identFn, parsec.Ident())
 
 	alias := parsec.And(identFn, parsec.Ident(), parsec.Token(`:`, ""))
 
 	arguments := parsec.And(
 		extract(1),
 		parsec.Token(`\(`, ""),
-		parsec.Many(argify, parsec.And(nil, parsec.Maybe(identFn, parsec.Ident()), parsec.Token(`:`, ""), argValue())),
+		parsec.Many(
+			argify,
+			// `Argument` list
+			parsec.And(nil, parsec.Maybe(identFn, parsec.Ident()), parsec.Token(`:`, ""), value())),
 		parsec.Token(`\)`, ""))
 
-	return sequence(queryify, &alias, &field, &arguments, query)
+	// Missing `directives`
+	return sequence(queryify, &alias, &name, &arguments, &selectionSet)
 }
 
-func argValue() parsec.Parser {
-	// Value[Const] :
-	//   [~Const]Variable (not implemented)
+func value() parsec.Parser {
+	//   Variable (not implemented)
 	//   IntValue
-	//   FloatValue
+	//   FloatValue (not implemented)
 	//   StringValue
 	//   BooleanValue (not implemented)
 	//   EnumValue (not implemented)
 	//   ListValueConst (not implemented)
 	//   ObjectValueConst (not implemented)
-	return parsec.OrdChoice(resultify, parsec.Int(), parsec.Float(), parsec.String())
+	return parsec.OrdChoice(valueify, parsec.Int(), parsec.String())
 }
 
 func queryify(nodes []parsec.ParsecNode) parsec.ParsecNode {
@@ -139,7 +144,7 @@ func argify(nodes []parsec.ParsecNode) parsec.ParsecNode {
 	return m
 }
 
-func resultify(nodes []parsec.ParsecNode) parsec.ParsecNode {
+func valueify(nodes []parsec.ParsecNode) parsec.ParsecNode {
 	node := nodes[0]
 	switch node.(type) {
 	case string:
