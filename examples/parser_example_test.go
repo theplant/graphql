@@ -20,7 +20,7 @@ func ExampleParserWithParam() {
 	qr, err := graphql.Parse("{ User(id: \"3500401\") { Id Name pic: ProfilePicture(size:50) { Uri Width } } }")
 	fmt.Println(qr)
 	fmt.Println(err)
-	c, err := graphql.Transform(qr, Query{})
+	c, err := graphql.Transform(qr[0], Query{})
 	fmt.Println(c)
 	fmt.Println(err)
 	// Output: {User  map[id:"3500401"] [{Id  map[] []} {Name  map[] []} {ProfilePicture pic map[size:50] [{Uri  map[] []} {Width  map[] []}]}]}

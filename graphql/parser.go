@@ -21,13 +21,13 @@ import (
 //   }
 // }
 
-var y, selectionSet parsec.Parser
+var y, selectionSet, name parsec.Parser
 
-func Parse(input string) (query Query, err error) {
+func Parse(input string) (query []Query, err error) {
 	s := parsec.NewScanner([]byte(input))
 	result, next := y(s)
 	if next.Endof() {
-		query = result.([]parsec.ParsecNode)[0].(Query)
+		query = result.([]Query)
 	} else {
 		err = errors.New("Failed to parse input")
 	}
@@ -36,18 +36,57 @@ func Parse(input string) (query Query, err error) {
 }
 
 func init() {
+	name = parsec.Maybe(identFn, parsec.Ident())
+
 	// missing `fragment spread`, `inline fragment`
 	selection := parsec.OrdChoice(extract(0), field())
-	selectionSet = parsec.And(extract(1), parsec.Token(`{`, ""), parsec.Many(nil, selection), parsec.Token(`}`, ""))
-	y = selectionSet
+	selectionSet = parsec.And(extract(1), parsec.Token(`{`, ""), parsec.Many(fieldArrayify, selection), parsec.Token(`}`, ""))
+
+	// missing `fragment definition`, `type definition`
+	definition := operationDefinition()
+	document := parsec.OrdChoice(extract(0), parsec.Maybe(shorthandQueryify, selectionSet), parsec.Many(fieldArrayify, definition))
+
+	y = document
+}
+
+func operationDefinition() parsec.Parser {
+	operationType := parsec.OrdChoice(extract(0), parsec.Token(`query`, "OP_TYPE_QUERY"), parsec.Token(`mutation`, "OP_TYPE_MUTATION"))
+
+	// missing `variable definitions`, `directives`
+	return sequence(operationDefinitionify, &operationType, &name, &selectionSet)
+}
+
+func identFn(nodes []parsec.ParsecNode) parsec.ParsecNode {
+	return nodes[0].(*parsec.Terminal).Value
+}
+
+// operationType name selectionSet -> query
+func operationDefinitionify(nodes []parsec.ParsecNode) parsec.ParsecNode {
+	if nodes[0] == nil || nodes[2] == nil {
+		return nil
+	}
+
+	query := Query{
+		Name:   nodes[0].(*parsec.Terminal).Value,
+		Fields: nodes[2].([]Query),
+	}
+	if nodes[1] != nil {
+		query.Alias = nodes[1].(*parsec.Terminal).Value
+	}
+	return query
+}
+
+// `{ fields }` -> []query
+func shorthandQueryify(nodes []parsec.ParsecNode) parsec.ParsecNode {
+	return []Query{
+		Query{
+			Name:   "query",
+			Fields: nodes[0].([]Query),
+		},
+	}
 }
 
 func field() parsec.Parser {
-	identFn := func(nodes []parsec.ParsecNode) parsec.ParsecNode {
-		return nodes[0].(*parsec.Terminal).Value
-	}
-
-	name := parsec.Maybe(identFn, parsec.Ident())
 
 	alias := parsec.And(identFn, parsec.Ident(), parsec.Token(`:`, ""))
 
@@ -76,8 +115,22 @@ func value() parsec.Parser {
 	return parsec.OrdChoice(valueify, parsec.Int(), parsec.String())
 }
 
+// { fields } -> []query
+func fieldArrayify(nodes []parsec.ParsecNode) parsec.ParsecNode {
+	return fieldArrayify_(nodes)
+}
+
+func fieldArrayify_(nodes []parsec.ParsecNode) []Query {
+	fields := []Query{}
+	for _, qr := range nodes {
+		fields = append(fields, qr.(Query))
+	}
+	return fields
+}
+
+// alias field argumetns selectionset
 func queryify(nodes []parsec.ParsecNode) parsec.ParsecNode {
-	alias, field, arguments, subquery := nodes[0], nodes[1], nodes[2], nodes[3]
+	alias, field, arguments, selectionSet := nodes[0], nodes[1], nodes[2], nodes[3]
 
 	query := Query{}
 
@@ -95,13 +148,10 @@ func queryify(nodes []parsec.ParsecNode) parsec.ParsecNode {
 		query.Arguments = arguments.(Arguments)
 	}
 
-	if subquery != nil {
-		subQueries := subquery.([]parsec.ParsecNode)
+	if selectionSet != nil {
+		subQueries := selectionSet.([]Query)
 		if len(subQueries) > 0 {
-			query.Fields = []Query{}
-			for _, qr := range subQueries {
-				query.Fields = append(query.Fields, qr.(Query))
-			}
+			query.Fields = subQueries
 		}
 	}
 
@@ -109,11 +159,18 @@ func queryify(nodes []parsec.ParsecNode) parsec.ParsecNode {
 }
 
 func dump(p string, nodes []parsec.ParsecNode) {
-	fmt.Printf("%s[", p)
+	fmt.Printf("%s<", p)
 	for _, n := range nodes {
 		fmt.Printf("%v,", n)
 	}
-	fmt.Println("]")
+	fmt.Println(">")
+}
+
+func dm(p string, cb parsec.Nodify) parsec.Nodify {
+	return func(nodes []parsec.ParsecNode) parsec.ParsecNode {
+		dump(p, nodes)
+		return cb(nodes)
+	}
 }
 
 func extract(n int) func(nodes []parsec.ParsecNode) parsec.ParsecNode {
