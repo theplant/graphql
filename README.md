@@ -67,18 +67,23 @@ into this:
 
 ```go
 graphql.Query{
-	Name:      "User",
-	Arguments: graphql.Arguments{"id": graphql.String("3500401")},
+	Name:   "query",
 	Fields: graphql.Fields{
-		graphql.Query{Name: "Id"},
-		graphql.Query{Name: "Name"},
 		graphql.Query{
-			Name:      "ProfilePicture",
-            Alias:     "pic",
-			Arguments: graphql.Arguments{"size": graphql.Int(50)},
-			Fields: graphql.Fields{
-				graphql.Query{Name: "Uri"},
-				graphql.Query{Name: "Width"},
+			Name:	  "User",
+			Arguments: graphql.Arguments{"id": graphql.String("3500401")},
+			Fields:    graphql.Fields{
+				graphql.Query{Name: "Id"},
+				graphql.Query{Name: "Name"},
+				graphql.Query{
+					Name:	   "ProfilePicture",
+					Alias:	   "pic",
+					Arguments: graphql.Arguments{"size": graphql.Int(50)},
+					Fields:    graphql.Fields{
+						graphql.Query{Name: "Uri"},
+						graphql.Query{Name: "Width"},
+					},
+				},
 			},
 		},
 	},
