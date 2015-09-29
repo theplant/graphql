@@ -1,0 +1,66 @@
+{
+   "hero":{
+      "name":"R2-D2",
+      "appearsIn":[
+         "NEWHOPE",
+         "EMPIRE",
+         "JEDI"
+      ],
+      "friends":[
+         {
+            "name":"Luke Skywalker",
+            "appearsIn":[
+               "NEWHOPE",
+               "EMPIRE",
+               "JEDI"
+            ],
+            "friends":[
+               {
+                  "name":"Han Solo",
+                  "appearsIn":[
+                     "NEWHOPE",
+                     "EMPIRE",
+                     "JEDI"
+                  ]
+               }
+            ]
+         },
+         {
+            "name":"Han Solo",
+            "appearsIn":[
+               "NEWHOPE",
+               "EMPIRE",
+               "JEDI"
+            ],
+            "friends":[
+               {
+                  "name":"Luke Skywalker",
+                  "appearsIn":[
+                     "NEWHOPE",
+                     "EMPIRE",
+                     "JEDI"
+                  ]
+               }
+            ]
+         },
+         {
+            "name":"Leia Organa",
+            "appearsIn":[
+               "NEWHOPE",
+               "EMPIRE",
+               "JEDI"
+            ]
+            "friends":[
+               {
+                  "name":"Han Solo",
+                  "appearsIn":[
+                     "NEWHOPE",
+                     "EMPIRE",
+                     "JEDI"
+                  ]
+               }
+            ]
+         }
+      ]
+   }
+}

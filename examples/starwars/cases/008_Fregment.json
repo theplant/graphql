@@ -1,0 +1,10 @@
+{
+  "luke": {
+    "name": "Luke Skywalker",
+    "homePlanet": "Tatooine"
+  },
+  "leia": {
+    "name": "Leia Organa",
+    "homePlanet": "Alderaan"
+  }
+}

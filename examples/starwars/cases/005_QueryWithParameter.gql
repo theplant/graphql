@@ -1,0 +1,5 @@
+query FetchLukeQuery {
+  human(id: "1000") {
+    name
+  }
+}
