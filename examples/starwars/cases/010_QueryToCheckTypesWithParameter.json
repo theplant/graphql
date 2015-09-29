@@ -1,0 +1,6 @@
+{
+  "hero": {
+    "__typename": "Human",
+    "name": "Luke Skywalker"
+  }
+}
